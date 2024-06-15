@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.image import imread
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 
 
 def eigenvalues_and_eigenvectors(matrix):
@@ -78,14 +78,70 @@ def apply_pca_to_bw(image_bw):
     plt.plot(cumulative_variance, linewidth=2)
     plt.show()
 
+    return num_of_components
+
+
+def reconstruct_pca_image(image_bw, num_of_components):
+    image_pca = IncrementalPCA(n_components=num_of_components)  # кількість компонент
+    new_image_components = image_pca.fit_transform(image_bw)  # нове зображ. з 48 компонентами
+    image_reconstruction = image_pca.inverse_transform(new_image_components)  # повернення до початкової розмірності
+
+    # Plotting the reconstructed image
+    plt.figure(figsize=[12, 6])
+    plt.imshow(image_reconstruction, cmap=plt.cm.gray)
+    plt.show()
+
+
+def reconstruction_dif_components(image_bw):
+
+    dif_number_comp = [5, 15, 25, 75, 100, 170]
+
+    plt.figure(figsize=[14, 8])
+
+    for i in range(6):
+        plt.subplot(2, 3, i + 1)
+        ipca = IncrementalPCA(n_components=dif_number_comp[i])
+        image_recon = ipca.inverse_transform(ipca.fit_transform(image_bw))
+        plt.imshow(image_recon, cmap=plt.cm.gray)
+        plt.title(f"Components: {dif_number_comp[i]}")
+
+    plt.subplots_adjust(wspace=0.2, hspace=0.0)
+    plt.show()
+
+
+def encrypt_message(message, key_matrix):
+    message_vector = np.array([ord(char) for char in message])
+    eigenvalues, eigenvectors = np.linalg.eig(key_matrix)
+    diagonalized_key_matrix = np.dot(np.dot(eigenvectors, np.diag(eigenvalues)), np.linalg.inv(eigenvectors))
+    encrypted_vector = np.dot(diagonalized_key_matrix, message_vector)
+
+    return encrypted_vector
+
+
+def decrypt_message(encrypted_vector, key_matrix):
+    eigenvalues, eigenvectors = np.linalg.eig(key_matrix)
+
+    diagonalized_key_matrix = np.dot(np.dot(eigenvectors, np.diag(eigenvalues)), np.linalg.inv(eigenvectors))  # діагоналізація матриці ключа
+    decrypted_vector = np.dot(np.linalg.inv(diagonalized_key_matrix), encrypted_vector)  # розшифрування вектора
+
+    decrypted_message = ''. join([chr(int(np.round(num))) for num in decrypted_vector.real])  # конвертація у символ ASCII
+
+    return decrypted_message
+
 
 def main():
     image_raw = imread("rainbow.jpg")
+    message = "Hello, World!"
+    key_matrix = np.random.randint(0, 256, (len(message), len(message)))
 
     print("Виклик різних функцій:\n"
           "1 - Обчислення власних значень та власних векторів матриці\n"
           "2 - Виведення початкового зображення\n"
-          "3 - Виведення чорно-білого зображення")
+          "3 - Виведення чорно-білого зображення\n"
+          "4 - Застосування PCA до чорно-білого зображення\n"
+          "5 - Реконструкція зображення з обмеженою кількістю компонентів\n"
+          "6 - Реконструкція зображення для різної кількості компонент\n"
+          "7 - Розшифрування зашифрованого вектора\n")
 
     user_input = int(input("Введіть номер: "))
     if user_input == 1:
@@ -97,6 +153,20 @@ def main():
     elif user_input == 4:
         image_bw = bw_image(image_raw)
         apply_pca_to_bw(image_bw)
+    elif user_input == 5:
+        image_bw = bw_image(image_raw)
+        num = apply_pca_to_bw(image_bw)
+        reconstruct_pca_image(image_bw, num)
+    elif user_input == 6:
+        image_bw = bw_image(image_raw)
+        reconstruction_dif_components(image_bw)
+    elif user_input == 7:
+        encrypted_vector = encrypt_message(message, key_matrix)
+        print(f"Original Message: {message}")
+        print(f"Encrypted Message: {encrypted_vector}")
+
+        decrypted_message = decrypt_message(encrypted_vector, key_matrix)
+        print(f"Decrypted Message: {decrypted_message}")
 
 
 if __name__ == "__main__":
