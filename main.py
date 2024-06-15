@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.image import imread
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 
 def eigenvalues_and_eigenvectors(matrix):
@@ -51,13 +52,31 @@ def bw_image(image_raw):
 
     plt.figure(figsize=[12, 6])
     plt.imshow(image_bw, cmap=plt.cm.gray)
-
     plt.show()
+
+    return image_bw
 
 
 def check_eig_expression():
     matrix = np.array([[5, 6], [7, 8]])
     eigenvalues_and_eigenvectors(matrix)
+
+
+def apply_pca_to_bw(image_bw):
+    pca = PCA()  # створення обʼєкту PCA
+    pca.fit(image_bw)  # обчислює компоненти PCA
+
+    cumulative_variance = np.cumsum(pca.explained_variance_ratio_) * 100  # обчислюється накопичена дисперсія
+    num_of_components = np.argmax(cumulative_variance > 95)  # знаходить мінімальну кількість компонент
+    print(f"Кількість компонент, які необхідні для покриття 95% дисперсії: {num_of_components}")
+
+    plt.figure(figsize=[12, 6])
+    plt.xlabel('Головні компоненти')
+    plt.ylabel('Накопичена дисперсія (%)')
+    plt.axvline(x=num_of_components, color="k", linestyle="--")
+    plt.axhline(y=95, color="r", linestyle="--")
+    plt.plot(cumulative_variance, linewidth=2)
+    plt.show()
 
 
 def main():
@@ -75,6 +94,9 @@ def main():
         initial_image(image_raw)
     elif user_input == 3:
         bw_image(image_raw)
+    elif user_input == 4:
+        image_bw = bw_image(image_raw)
+        apply_pca_to_bw(image_bw)
 
 
 if __name__ == "__main__":
